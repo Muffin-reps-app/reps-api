@@ -14,14 +14,26 @@ const schema = buildSchema(`
         last_name: String!
         zip_codes: [Int]
     }
+    input CreateRepInput {
+        first_name: String!
+        last_name: String!
+        zip_codes: [Int]!
+    }
     type Query {
         findRepsByZip(zipcode: Int): [Rep]
+    }
+    type Mutation {
+        createNewRep(input: CreateRepInput): Rep
     }
 `)
 
 const root = {
     findRepsByZip: ({ zipcode }) => {
         return database('reps').select()
+    },
+    createNewRep: async ({ input }) => {
+        const result = await database('reps').insert(input).returning(['id', 'first_name', 'last_name', 'zip_codes'])
+        return result[0]
     }
 }
 
