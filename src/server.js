@@ -19,15 +19,26 @@ const schema = buildSchema(`
         last_name: String!
         zip_codes: [Int]!
     }
+    input UpdateRepInput {
+        id: Int!
+        first_name: String
+        last_name: String
+        zip_codes: [Int]
+    }
     type Query {
         findRepsByZip(zipcode: Int): [Rep]
         getAllReps: [Rep]
     }
     type Mutation {
         createNewRep(input: CreateRepInput!): Rep
+        updateRep(input: UpdateRepInput): Rep
+        addZipcode(id: Int!, zipcode: Int!): Rep
+        removeZipcode(id: Int!, zipcode: Int!): Rep
         deleteRep(id: Int!): Rep
     }
 `)
+
+const REP_MODEL = ['id', 'first_name', 'last_name', 'zip_codes']
 
 const root = {
     findRepsByZip: ({ zipcode }) => {
@@ -37,11 +48,38 @@ const root = {
         return database('reps').select()
     },
     createNewRep: async ({ input }) => {
-        const result = await database('reps').insert(input).returning(['id', 'first_name', 'last_name', 'zip_codes'])
+        const result = await database('reps').insert(input).returning(REP_MODEL)
+        return result[0]
+    },
+    updateRep: async ({ input }) => {
+        const { id } = input
+        const changes = {}
+        let changeCount = 0
+
+        for (const key in input) {
+            if (Object.hasOwnProperty.call(input, key) && key !== 'id') {
+                changes[key] = input[key]
+                changeCount++
+            }
+        }
+
+        if (changeCount === 0) {
+            throw new Error('Nothing to change')
+        }
+
+        const result = await database('reps').where({ id }).update(changes, REP_MODEL)
+        return result[0]
+    },
+    addZipcode: async ({ id, zipcode }) => {
+        const result = await database('reps').where({ id }).whereRaw('not (? = any (zip_codes))', [zipcode]).update({ zip_codes: database.raw('array_append(zip_codes, ?)', [zipcode]) }, REP_MODEL)
+        return result[0]
+    },
+    removeZipcode: async ({ id, zipcode }) => {
+        const result = await database('reps').where({ id }).update({ zip_codes: database.raw('array_remove(zip_codes, ?)', [zipcode]) }, REP_MODEL)
         return result[0]
     },
     deleteRep: async ({ id }) => {
-        const result = await database('reps').where('id', '=', id).del(['id', 'first_name', 'last_name', 'zip_codes'])
+        const result = await database('reps').where({ id }).del(REP_MODEL)
         return result[0]
     }
 }
