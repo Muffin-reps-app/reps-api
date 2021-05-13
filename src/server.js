@@ -21,18 +21,27 @@ const schema = buildSchema(`
     }
     type Query {
         findRepsByZip(zipcode: Int): [Rep]
+        getAllReps: [Rep]
     }
     type Mutation {
-        createNewRep(input: CreateRepInput): Rep
+        createNewRep(input: CreateRepInput!): Rep
+        deleteRep(id: Int!): Rep
     }
 `)
 
 const root = {
     findRepsByZip: ({ zipcode }) => {
+        return database('reps').select().whereRaw('? = any (zip_codes)', [zipcode])
+    },
+    getAllReps: () => {
         return database('reps').select()
     },
     createNewRep: async ({ input }) => {
         const result = await database('reps').insert(input).returning(['id', 'first_name', 'last_name', 'zip_codes'])
+        return result[0]
+    },
+    deleteRep: async ({ id }) => {
+        const result = await database('reps').where('id', '=', id).del(['id', 'first_name', 'last_name', 'zip_codes'])
         return result[0]
     }
 }
