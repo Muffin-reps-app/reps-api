@@ -4,4 +4,10 @@ const prettyPrint = (value) => {
     console.log(inspect(value, false, null, true))
 }
 
-module.exports = { prettyPrint }
+const firstResult = async (databasePromise) => {
+    const result = await databasePromise
+    return result[0]
+}
+
+
+module.exports = { prettyPrint, firstResult }

@@ -4,6 +4,8 @@ const environment = process.env.NODE_ENV || 'development'
 const configuration = require('../knexfile')[environment]
 const database = require('knex')(configuration)
 
+const { firstResult } = require('./sugar')
+
 const { graphqlHTTP } = require('express-graphql')
 const { buildSchema } = require('graphql')
 
@@ -47,11 +49,10 @@ const root = {
     getAllReps: () => {
         return database('reps').select()
     },
-    createNewRep: async ({ input }) => {
-        const result = await database('reps').insert(input).returning(REP_MODEL)
-        return result[0]
+    createNewRep: ({ input }) => {
+        return firstResult(database('reps').insert(input).returning(REP_MODEL)
     },
-    updateRep: async ({ input }) => {
+    updateRep: ({ input }) => {
         const { id } = input
         const changes = {}
         let changeCount = 0
@@ -67,20 +68,16 @@ const root = {
             throw new Error('Nothing to change')
         }
 
-        const result = await database('reps').where({ id }).update(changes, REP_MODEL)
-        return result[0]
+        return firstResult(database('reps').where({ id }).update(changes, REP_MODEL))
     },
-    addZipcode: async ({ id, zipcode }) => {
-        const result = await database('reps').where({ id }).whereRaw('not (? = any (zip_codes))', [zipcode]).update({ zip_codes: database.raw('array_append(zip_codes, ?)', [zipcode]) }, REP_MODEL)
-        return result[0]
+    addZipcode: ({ id, zipcode }) => {
+        return firstResult(database('reps').where({ id }).whereRaw('not (? = any (zip_codes))', [zipcode]).update({ zip_codes: database.raw('array_append(zip_codes, ?)', [zipcode]) }, REP_MODEL))
     },
-    removeZipcode: async ({ id, zipcode }) => {
-        const result = await database('reps').where({ id }).update({ zip_codes: database.raw('array_remove(zip_codes, ?)', [zipcode]) }, REP_MODEL)
-        return result[0]
+    removeZipcode: ({ id, zipcode }) => {
+        return firstResult(database('reps').where({ id }).update({ zip_codes: database.raw('array_remove(zip_codes, ?)', [zipcode]) }, REP_MODEL))
     },
-    deleteRep: async ({ id }) => {
-        const result = await database('reps').where({ id }).del(REP_MODEL)
-        return result[0]
+    deleteRep: ({ id }) => {
+        return firstResult(database('reps').where({ id }).del(REP_MODEL))
     }
 }
 
