@@ -14,17 +14,20 @@ const schema = buildSchema(`
         id: Int!
         first_name: String!
         last_name: String!
+        rep_code: Int!
         zip_codes: [Int]
     }
     input CreateRepInput {
         first_name: String!
         last_name: String!
+        rep_code: Int!
         zip_codes: [Int]!
     }
     input UpdateRepInput {
         id: Int!
         first_name: String
         last_name: String
+        rep_code: Int
         zip_codes: [Int]
     }
     type Query {
@@ -40,7 +43,7 @@ const schema = buildSchema(`
     }
 `)
 
-const REP_MODEL = ['id', 'first_name', 'last_name', 'zip_codes']
+const REP_MODEL = ['id', 'rep_code', 'first_name', 'last_name', 'zip_codes']
 
 const root = {
     findRepsByZip: ({ zipcode }) => {
@@ -50,7 +53,7 @@ const root = {
         return database('reps').select()
     },
     createNewRep: ({ input }) => {
-        return firstResult(database('reps').insert(input).returning(REP_MODEL)
+        return firstResult(database('reps').insert(input).returning(REP_MODEL))
     },
     updateRep: ({ input }) => {
         const { id } = input
